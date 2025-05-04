@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6
+    container_name: mongodb_db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: user
+      MONGO_INITDB_ROOT_PASSWORD: userpassword
+      MONGO_INITDB_DATABASE: sample_db
+    volumes:
+      - mongodb-data:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  dbgate:
+    image: dbgate/dbgate:latest
+    container_name: dbgate_gui
+    ports:
+      - "99999:3000"
+    volumes:
+      - dbgate-data:/root/.dbgate
+    environment:
+      - CONNECTIONS=mongodb_conn
+      - LABEL_mongodb_conn=MongoDB Database
+      - SERVER_mongodb_conn=mongodb
+      - USER_mongodb_conn=user
+      - PASSWORD_mongodb_conn=userpassword
+      - PORT_mongodb_conn=27017
+      - DATABASE_mongodb_conn=sample_db
+      - ENGINE_mongodb_conn=mongodb@dbgate-plugin-mongo
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  mongodb-data:
+    driver: local
+  dbgate-data:
+    driver: local

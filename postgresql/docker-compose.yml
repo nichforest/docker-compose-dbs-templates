@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres_db
+    environment:
+      POSTGRES_PASSWORD: rootpassword
+      POSTGRES_DB: sample_db
+      POSTGRES_USER: user
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d sample_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  dbgate:
+    image: dbgate/dbgate:latest
+    container_name: dbgate_gui
+    ports:
+      - "9999:3000"
+    volumes:
+      - dbgate-data:/root/.dbgate
+    environment:
+      - CONNECTIONS=postgres_conn
+      - LABEL_postgres_conn=PostgreSQL Database
+      - SERVER_postgres_conn=postgres
+      - USER_postgres_conn=user
+      - PASSWORD_postgres_conn=rootpassword
+      - PORT_postgres_conn=5432
+      - DATABASE_postgres_conn=sample_db
+      - ENGINE_postgres_conn=postgres@dbgate-plugin-postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+    driver: local
+  dbgate-data:
+    driver: local
